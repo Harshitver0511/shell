@@ -1,0 +1,2177 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Multilingual Captions - AI Accessibility</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .controls {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .control-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .control-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            min-width: 150px;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        #startBtn {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        #startBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        #stopBtn {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+        }
+
+        #stopBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        #stopBtn:disabled,
+        #startBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .caption-display {
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            min-height: 200px;
+            position: relative;
+        }
+
+        .caption-text {
+            color: white;
+            font-size: 2em;
+            line-height: 1.6;
+            text-align: center;
+            font-weight: 500;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .status {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .status.active {
+            background: #38ef7d;
+            color: #000;
+        }
+
+        .status.inactive {
+            background: #666;
+            color: white;
+        }
+
+        .history {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-top: 30px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .history-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .confidence {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 2px 8px;
+            background: #667eea;
+            color: white;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .caption-text {
+                font-size: 1.5em;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+
+        .audio-source {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .audio-source h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .source-options {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .source-option {
+            flex: 1;
+            min-width: 200px;
+            padding: 15px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .source-option:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .source-option.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .source-option input[type="radio"] {
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎙️ Live Multilingual Captions</h1>
+            <p>Real-time speech-to-text with AI-powered simplification for enhanced accessibility</p>
+        </div>
+
+        <div class="controls">
+            <div class="audio-source">
+                <h3>Audio Source</h3>
+                <div class="source-options">
+                    <label class="source-option selected">
+                        <input type="radio" name="audioSource" value="microphone" checked>
+                        <strong>🎤 Microphone</strong>
+                        <p style="font-size: 0.9em; color: #666; margin-top: 5px;">Capture live audio from mic</p>
+                    </label>
+                    <label class="source-option">
+                        <input type="radio" name="audioSource" value="system">
+                        <strong>🔊 System Audio</strong>
+                        <p style="font-size: 0.9em; color: #666; margin-top: 5px;">Capture Zoom/Meet audio</p>
+                    </label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="sourceLanguage">Source Language (What is being spoken):</label>
+                <select id="sourceLanguage">
+                    <option value="english">English</option>
+                    <option value="hindi">Hindi (हिंदी)</option>
+                    <option value="bengali">Bengali (বাংলা)</option>
+                    <option value="tamil">Tamil (தமிழ்)</option>
+                    <option value="telugu">Telugu (తెలుగు)</option>
+                    <option value="marathi">Marathi (मराठी)</option>
+                    <option value="malayalam">Malayalam (മലയാളം)</option>
+                    <option value="kannada">Kannada (ಕನ್ನಡ)</option>
+                    <option value="gujarati">Gujarati (ગુજરાતી)</option>
+                    <option value="punjabi">Punjabi (ਪੰਜਾਬੀ)</option>
+                    <option value="odia">Odia (ଓଡ଼ିଆ)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="targetLanguage">Caption Language (Display captions in):</label>
+                <select id="targetLanguage">
+                    <option value="english">English</option>
+                    <option value="hindi">Hindi (हिंदी)</option>
+                    <option value="bengali">Bengali (বাংলা)</option>
+                    <option value="tamil">Tamil (தமிழ்)</option>
+                    <option value="telugu">Telugu (తెలుగు)</option>
+                    <option value="marathi">Marathi (मराठी)</option>
+                    <option value="malayalam">Malayalam (മലയാളം)</option>
+                    <option value="kannada">Kannada (ಕನ್ನಡ)</option>
+                    <option value="gujarati">Gujarati (ગુજરાતી)</option>
+                    <option value="punjabi">Punjabi (ਪੰਜਾਬੀ)</option>
+                    <option value="odia">Odia (ଓଡ଼ିଆ)</option>
+                </select>
+            </div>
+
+            <div class="control-group checkbox-group">
+                <input type="checkbox" id="simplifyText" checked>
+                <label for="simplifyText">Enable Deaf-Friendly Text Simplification</label>
+            </div>
+
+            <div class="button-group">
+                <button id="startBtn">▶️ Start Captions</button>
+                <button id="stopBtn" disabled>⏹️ Stop Captions</button>
+            </div>
+        </div>
+
+        <div class="caption-display">
+            <div class="status inactive" id="status">INACTIVE</div>
+            <div class="caption-text" id="captionText">
+                Captions will appear here when you start...
+            </div>
+        </div>
+
+        <div class="history">
+            <h3>Caption History</h3>
+            <div id="historyContainer">
+                <p style="color: #999;">No captions yet...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let mediaRecorder;
+        let audioContext;
+        let isRecording = false;
+        let audioChunks = [];
+        let captionHistory = [];
+
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const captionText = document.getElementById('captionText');
+        const status = document.getElementById('status');
+        const historyContainer = document.getElementById('historyContainer');
+        const sourceLanguage = document.getElementById('sourceLanguage');
+        const targetLanguage = document.getElementById('targetLanguage');
+        const simplifyCheckbox = document.getElementById('simplifyText');
+
+        // Handle audio source selection
+        const sourceOptions = document.querySelectorAll('.source-option');
+        sourceOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                sourceOptions.forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+                this.querySelector('input').checked = true;
+            });
+        });
+
+        socket.on('connect', () => {
+            console.log('Connected to server');
+        });
+
+        socket.on('caption', (data) => {
+            captionText.textContent = data.text;
+            
+            // Add to history
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            historyItem.innerHTML = `
+                ${data.text}
+                <span class="confidence">${Math.round(data.confidence * 100)}% confident</span>
+            `;
+            
+            if (historyContainer.querySelector('p')) {
+                historyContainer.innerHTML = '';
+            }
+            
+            historyContainer.insertBefore(historyItem, historyContainer.firstChild);
+            
+            // Keep only last 20 items
+            while (historyContainer.children.length > 20) {
+                historyContainer.removeChild(historyContainer.lastChild);
+            }
+        });
+
+        socket.on('error', (data) => {
+            console.error('Error:', data.message);
+            captionText.textContent = `Error: ${data.message}`;
+        });
+
+        startBtn.addEventListener('click', async () => {
+            try {
+                const audioSource = document.querySelector('input[name="audioSource"]:checked').value;
+                
+                let stream;
+                if (audioSource === 'microphone') {
+                    stream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true,
+                            sampleRate: 16000
+                        } 
+                    });
+                } else {
+                    // System audio capture
+                    stream = await navigator.mediaDevices.getDisplayMedia({ 
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true,
+                            sampleRate: 16000
+                        },
+                        video: true
+                    });
+                    
+                    // Stop video track, we only need audio
+                    stream.getVideoTracks().forEach(track => track.stop());
+                }
+
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                    sampleRate: 16000
+                });
+                
+                const source = audioContext.createMediaStreamSource(stream);
+                const processor = audioContext.createScriptProcessor(4096, 1, 1);
+                
+                source.connect(processor);
+                processor.connect(audioContext.destination);
+                
+                processor.onaudioprocess = (e) => {
+                    if (!isRecording) return;
+                    
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    const pcmData = new Int16Array(inputData.length);
+                    
+                    for (let i = 0; i < inputData.length; i++) {
+                        pcmData[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32768));
+                    }
+                    
+                    const base64Audio = btoa(String.fromCharCode.apply(null, new Uint8Array(pcmData.buffer)));
+                    
+                    socket.emit('audio_data', {
+                        audio: base64Audio,
+                        source_language: sourceLanguage.value,
+                        target_language: targetLanguage.value,
+                        simplify: simplifyCheckbox.checked
+                    });
+                };
+
+                isRecording = true;
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                status.textContent = 'ACTIVE';
+                status.className = 'status active';
+                captionText.textContent = 'Listening...';
+
+                socket.emit('start_stream', {
+                    source_language: sourceLanguage.value,
+                    target_language: targetLanguage.value
+                });
+
+            } catch (error) {
+                console.error('Error accessing audio:', error);
+                alert('Error accessing audio: ' + error.message + '\n\nFor system audio, make sure to:\n1. Select "Share audio" in the screen share dialog\n2. Grant necessary permissions');
+            }
+        });
+
+        stopBtn.addEventListener('click', () => {
+            isRecording = false;
+            
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+            
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            status.textContent = 'INACTIVE';
+            status.className = 'status inactive';
+            captionText.textContent = 'Captions stopped. Click Start to resume...';
+            
+            socket.emit('stop_stream');
+        });
+    </script>
+</body>
+</html> -->
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Multilingual Captions - AI Accessibility</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .controls {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .control-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .control-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            min-width: 150px;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        #startBtn {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        #startBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        #stopBtn {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+        }
+
+        #stopBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        #stopBtn:disabled,
+        #startBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .caption-display {
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            min-height: 200px;
+            position: relative;
+        }
+
+        .caption-text {
+            color: white;
+            font-size: 2em;
+            line-height: 1.6;
+            text-align: center;
+            font-weight: 500;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .status {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .status.active {
+            background: #38ef7d;
+            color: #000;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .status.inactive {
+            background: #666;
+            color: white;
+        }
+
+        .history {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-top: 30px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .history-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .confidence {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 2px 8px;
+            background: #667eea;
+            color: white;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .caption-text {
+                font-size: 1.5em;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+
+        .audio-source {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .audio-source h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .source-options {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .source-option {
+            flex: 1;
+            min-width: 200px;
+            padding: 15px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .source-option:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .source-option.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .source-option input[type="radio"] {
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎙️ Live Multilingual Captions</h1>
+            <p>Real-time speech-to-text with AI-powered simplification for enhanced accessibility</p>
+        </div>
+
+        <div class="controls">
+            <div class="audio-source">
+                <h3>Audio Source</h3>
+                <div class="source-options">
+                    <label class="source-option selected">
+                        <input type="radio" name="audioSource" value="microphone" checked>
+                        <strong>🎤 Microphone</strong>
+                        <p style="font-size: 0.9em; color: #666; margin-top: 5px;">Capture live audio from mic</p>
+                    </label>
+                    <label class="source-option">
+                        <input type="radio" name="audioSource" value="system">
+                        <strong>🔊 System Audio</strong>
+                        <p style="font-size: 0.9em; color: #666; margin-top: 5px;">Capture Zoom/Meet audio</p>
+                    </label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="sourceLanguage">Source Language (What is being spoken):</label>
+                <select id="sourceLanguage">
+                    <option value="en">English</option>
+                    <option value="hi">Hindi (हिंदी)</option>
+                    <option value="bn">Bengali (বাংলা)</option>
+                    <option value="ta">Tamil (தமிழ்)</option>
+                    <option value="te">Telugu (తెలుగు)</option>
+                    <option value="mr">Marathi (मराठी)</option>
+                    <option value="ml">Malayalam (മലയാളം)</option>
+                    <option value="kn">Kannada (ಕನ್ನಡ)</option>
+                    <option value="gu">Gujarati (ગુજરાતી)</option>
+                    <option value="pa">Punjabi (ਪੰਜਾਬੀ)</option>
+                    <option value="or">Odia (ଓଡ଼ିଆ)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="targetLanguage">Caption Language (Display captions in):</label>
+                <select id="targetLanguage">
+                    <option value="en">English</option>
+                    <option value="hi">Hindi (हिंदी)</option>
+                    <option value="bn">Bengali (বাংলা)</option>
+                    <option value="ta">Tamil (தமிழ்)</option>
+                    <option value="te">Telugu (తెలుగు)</option>
+                    <option value="mr">Marathi (मराठी)</option>
+                    <option value="ml">Malayalam (മലയാളം)</option>
+                    <option value="kn">Kannada (ಕನ್ನಡ)</option>
+                    <option value="gu">Gujarati (ગુજરાતી)</option>
+                    <option value="pa">Punjabi (ਪੰਜਾਬੀ)</option>
+                    <option value="or">Odia (ଓଡ଼ିଆ)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="simplification">Text Simplification Level:</label>
+                <select id="simplification">
+                    <option value="low">Low (Keep original)</option>
+                    <option value="medium" selected>Medium (Balanced)</option>
+                    <option value="high">High (Very simple)</option>
+                </select>
+            </div>
+
+            <div class="button-group">
+                <button id="startBtn">▶️ Start Captions</button>
+                <button id="stopBtn" disabled>⏹️ Stop Captions</button>
+            </div>
+        </div>
+
+        <div class="caption-display">
+            <div class="status inactive" id="status">INACTIVE</div>
+            <div class="caption-text" id="captionText">
+                Captions will appear here when you start...
+            </div>
+        </div>
+
+        <div class="history">
+            <h3>Caption History</h3>
+            <div id="historyContainer">
+                <p style="color: #999;">No captions yet...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ✅ MODERN AUDIO CAPTURE - No deprecation warnings!
+        // class ModernAudioCapture {
+        //     constructor() {
+        //         this.mediaRecorder = null;
+        //         this.audioStream = null;
+        //         this.isRecording = false;
+        //         this.socket = null;
+        //     }
+
+        //     async initialize(audioSource = 'microphone') {
+        //         try {
+        //             // Request audio access based on source
+        //             if (audioSource === 'microphone') {
+        //                 this.audioStream = await navigator.mediaDevices.getUserMedia({
+        //                     audio: {
+        //                         channelCount: 1,
+        //                         sampleRate: 16000,
+        //                         echoCancellation: true,
+        //                         noiseSuppression: true,
+        //                         autoGainControl: true
+        //                     }
+        //                 });
+        //             } else {
+        //                 // System audio capture (for Zoom/Meet)
+        //                 const displayStream = await navigator.mediaDevices.getDisplayMedia({
+        //                     audio: {
+        //                         channelCount: 1,
+        //                         sampleRate: 16000,
+        //                         echoCancellation: true,
+        //                         noiseSuppression: true,
+        //                         autoGainControl: true
+        //                     },
+        //                     video: true
+        //                 });
+                        
+        //                 // Stop video track, only keep audio
+        //                 displayStream.getVideoTracks().forEach(track => track.stop());
+        //                 this.audioStream = displayStream;
+        //             }
+
+        //             // ✅ Use MediaRecorder (modern, no deprecation)
+        //             const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+        //                 ? 'audio/webm;codecs=opus' 
+        //                 : 'audio/webm';
+                    
+        //             this.mediaRecorder = new MediaRecorder(this.audioStream, {
+        //                 mimeType: mimeType,
+        //                 audioBitsPerSecond: 16000
+        //             });
+
+        //             this.mediaRecorder.ondataavailable = (event) => {
+        //                 if (event.data.size > 0 && this.isRecording) {
+        //                     this.sendAudioChunk(event.data);
+        //                 }
+        //             };
+
+        //             return true;
+        //         } catch (error) {
+        //             console.error('Audio access error:', error);
+        //             if (audioSource === 'system') {
+        //                 alert('Error accessing system audio:\n' + error.message + 
+        //                       '\n\nMake sure to:\n1. Select "Share audio" in the dialog\n2. Grant necessary permissions');
+        //             }
+        //             return false;
+        //         }
+        //     }
+
+        //     start(socket, settings) {
+        //         if (!this.mediaRecorder) return false;
+                
+        //         this.socket = socket;
+        //         this.settings = settings;
+        //         this.isRecording = true;
+                
+        //         // Collect chunks every 1000ms (1 second)
+        //         this.mediaRecorder.start(1000);
+                
+        //         console.log('✅ Recording started (Modern MediaRecorder API)');
+        //         return true;
+        //     }
+
+        //     stop() {
+        //         if (this.mediaRecorder && this.isRecording) {
+        //             this.isRecording = false;
+        //             this.mediaRecorder.stop();
+                    
+        //             if (this.audioStream) {
+        //                 this.audioStream.getTracks().forEach(track => track.stop());
+        //             }
+                    
+        //             console.log('⏹️ Recording stopped');
+        //         }
+        //     }
+
+        //     async sendAudioChunk(blob) {
+        //         if (!this.socket || !this.isRecording) return;
+
+        //         try {
+        //             // Convert blob to base64
+        //             const reader = new FileReader();
+        //             reader.onloadend = () => {
+        //                 const base64Audio = reader.result.split(',')[1];
+                        
+        //                 // Send via Socket.IO
+        //                 this.socket.emit('audio_chunk', {
+        //                     audio: base64Audio,
+        //                     language: this.settings.sourceLanguage,
+        //                     target_language: this.settings.targetLanguage,
+        //                     simplification: this.settings.simplification
+        //                 });
+        //             };
+        //             reader.readAsDataURL(blob);
+        //         } catch (error) {
+        //             console.error('Error sending audio:', error);
+        //         }
+        //     }
+        // }
+
+        // // Initialize
+        // const socket = io({
+        //     transports: ['websocket', 'polling']
+        // });
+        
+        // const audioCapture = new ModernAudioCapture();
+        // let isRecording = false;
+
+        // const startBtn = document.getElementById('startBtn');
+        // const stopBtn = document.getElementById('stopBtn');
+        // const captionText = document.getElementById('captionText');
+        // const status = document.getElementById('status');
+        // const historyContainer = document.getElementById('historyContainer');
+        // const sourceLanguage = document.getElementById('sourceLanguage');
+        // const targetLanguage = document.getElementById('targetLanguage');
+        // const simplification = document.getElementById('simplification');
+
+        // // Handle audio source selection
+        // const sourceOptions = document.querySelectorAll('.source-option');
+        // sourceOptions.forEach(option => {
+        //     option.addEventListener('click', function() {
+        //         sourceOptions.forEach(opt => opt.classList.remove('selected'));
+        //         this.classList.add('selected');
+        //         this.querySelector('input').checked = true;
+        //     });
+        // });
+
+        // socket.on('connect', () => {
+        //     console.log('✅ Connected to server');
+        // });
+
+        // socket.on('disconnect', () => {
+        //     console.log('❌ Disconnected from server');
+        // });
+
+        // socket.on('caption_update', (data) => {
+        //     console.log('📝 Caption received:', data);
+            
+        //     // Display simplified caption (main display)
+        //     captionText.textContent = data.simplified || data.translated || data.original;
+            
+        //     // Add to history with all versions
+        //     const historyItem = document.createElement('div');
+        //     historyItem.className = 'history-item';
+            
+        //     let historyHTML = `<strong>Original:</strong> ${data.original}<br>`;
+            
+        //     if (data.translated && data.translated !== data.original) {
+        //         historyHTML += `<strong>Translated:</strong> ${data.translated}<br>`;
+        //     }
+            
+        //     if (data.simplified && data.simplified !== data.translated) {
+        //         historyHTML += `<strong>Simplified:</strong> ${data.simplified}`;
+        //     }
+            
+        //     historyItem.innerHTML = historyHTML;
+            
+        //     if (historyContainer.querySelector('p')) {
+        //         historyContainer.innerHTML = '';
+        //     }
+            
+        //     historyContainer.insertBefore(historyItem, historyContainer.firstChild);
+            
+        //     // Keep only last 20 items
+        //     while (historyContainer.children.length > 20) {
+        //         historyContainer.removeChild(historyContainer.lastChild);
+        //     }
+        // });
+
+        // socket.on('error', (data) => {
+        //     console.error('❌ Error:', data.message);
+        //     captionText.textContent = `Error: ${data.message}`;
+        // });
+
+        // startBtn.addEventListener('click', async () => {
+        //     try {
+        //         const audioSource = document.querySelector('input[name="audioSource"]:checked').value;
+                
+        //         // Initialize audio capture
+        //         const success = await audioCapture.initialize(audioSource);
+        //         if (!success) {
+        //             return;
+        //         }
+
+        //         // Get settings
+        //         const settings = {
+        //             sourceLanguage: sourceLanguage.value,
+        //             targetLanguage: targetLanguage.value,
+        //             simplification: simplification.value
+        //         };
+
+        //         // Start recording
+        //         audioCapture.start(socket, settings);
+        //         isRecording = true;
+
+        //         // Update UI
+        //         startBtn.disabled = true;
+        //         stopBtn.disabled = false;
+        //         status.textContent = 'ACTIVE';
+        //         status.className = 'status active';
+        //         captionText.textContent = 'Listening... speak now!';
+
+        //         console.log('🎤 Started with settings:', settings);
+
+        //     } catch (error) {
+        //         console.error('❌ Error starting:', error);
+        //         alert('Error: ' + error.message);
+        //     }
+        // });
+
+        // stopBtn.addEventListener('click', () => {
+        //     audioCapture.stop();
+        //     isRecording = false;
+            
+        //     startBtn.disabled = false;
+        //     stopBtn.disabled = true;
+        //     status.textContent = 'INACTIVE';
+        //     status.className = 'status inactive';
+        //     captionText.textContent = 'Captions stopped. Click Start to resume...';
+            
+        //     console.log('⏹️ Stopped');
+        // });
+        // ✅ FIXED: Matches backend event names and data format
+class ModernAudioCapture {
+    constructor() {
+        this.mediaRecorder = null;
+        this.audioStream = null;
+        this.audioContext = null;
+        this.isRecording = false;
+        this.socket = null;
+    }
+
+    async initialize(audioSource = 'microphone') {
+        try {
+            // Request audio access based on source
+            if (audioSource === 'microphone') {
+                this.audioStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        channelCount: 1,
+                        sampleRate: 16000,
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+            } else {
+                // System audio capture (for Zoom/Meet)
+                const displayStream = await navigator.mediaDevices.getDisplayMedia({
+                    audio: {
+                        channelCount: 1,
+                        sampleRate: 16000,
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    },
+                    video: true
+                });
+                
+                // Stop video track, only keep audio
+                displayStream.getVideoTracks().forEach(track => track.stop());
+                this.audioStream = displayStream;
+            }
+
+            // Create AudioContext for proper audio processing
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                sampleRate: 16000
+            });
+            
+            const source = this.audioContext.createMediaStreamSource(this.audioStream);
+            
+            // Use MediaStreamAudioDestinationNode instead of deprecated ScriptProcessor
+            const destination = this.audioContext.createMediaStreamDestination();
+            source.connect(destination);
+            
+            // Use MediaRecorder on the processed stream
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+                ? 'audio/webm;codecs=opus' 
+                : 'audio/webm';
+            
+            this.mediaRecorder = new MediaRecorder(destination.stream, {
+                mimeType: mimeType,
+                audioBitsPerSecond: 128000
+            });
+
+            this.mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0 && this.isRecording) {
+                    this.sendAudioChunk(event.data);
+                }
+            };
+            
+
+
+            console.log('✅ Audio initialized with', mimeType);
+            return true;
+            
+        } catch (error) {
+            console.error('Audio access error:', error);
+            if (audioSource === 'system') {
+                alert('Error accessing system audio:\n' + error.message + 
+                      '\n\nMake sure to:\n1. Select "Share audio" in the dialog\n2. Grant necessary permissions');
+            } else {
+                alert('Error accessing microphone:\n' + error.message);
+            }
+            return false;
+        }
+    }
+
+    start(socket, settings) {
+        if (!this.mediaRecorder) return false;
+        
+        this.socket = socket;
+        this.settings = settings;
+        this.isRecording = true;
+        
+        // Collect chunks every 500ms for better real-time performance
+        this.mediaRecorder.start(500);
+        
+        console.log('✅ Recording started with settings:', settings);
+        return true;
+    }
+
+    stop() {
+        if (this.mediaRecorder && this.isRecording) {
+            this.isRecording = false;
+            this.mediaRecorder.stop();
+            
+            if (this.audioContext) {
+                this.audioContext.close();
+                this.audioContext = null;
+            }
+            
+            if (this.audioStream) {
+                this.audioStream.getTracks().forEach(track => track.stop());
+            }
+            
+            console.log('⏹️ Recording stopped');
+        }
+    }
+
+    async sendAudioChunk(blob) {
+        if (!this.socket || !this.isRecording) return;
+
+        try {
+            // Convert blob to ArrayBuffer, then to PCM
+            const arrayBuffer = await blob.arrayBuffer();
+            
+            // For WebM/Opus, we need to decode to PCM
+            // Simple approach: send the base64 encoded audio
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64Audio = reader.result.split(',')[1];
+                
+                // ✅ FIXED: Use 'audio_data' to match backend
+                this.socket.emit('audio_data', {
+                    audio: base64Audio,
+                    source_language: this.settings.sourceLanguage,  // ✅ Correct key
+                    target_language: this.settings.targetLanguage,  // ✅ Correct key
+                    simplify: this.settings.simplification !== 'low'  // ✅ Boolean
+                });
+                
+                console.log('📤 Sent audio chunk:', {
+                    size: blob.size,
+                    source: this.settings.sourceLanguage,
+                    target: this.settings.targetLanguage
+                });
+            };
+            reader.readAsDataURL(blob);
+            
+        } catch (error) {
+            console.error('❌ Error sending audio:', error);
+        }
+    }
+}
+
+// Initialize
+const socket = io({
+    transports: ['websocket', 'polling']
+});
+
+const audioCapture = new ModernAudioCapture();
+let isRecording = false;
+
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const captionText = document.getElementById('captionText');
+const status = document.getElementById('status');
+const historyContainer = document.getElementById('historyContainer');
+const sourceLanguage = document.getElementById('sourceLanguage');
+const targetLanguage = document.getElementById('targetLanguage');
+const simplification = document.getElementById('simplification');
+
+// Handle audio source selection
+const sourceOptions = document.querySelectorAll('.source-option');
+sourceOptions.forEach(option => {
+    option.addEventListener('click', function() {
+        sourceOptions.forEach(opt => opt.classList.remove('selected'));
+        this.classList.add('selected');
+        this.querySelector('input').checked = true;
+    });
+});
+
+// Socket.IO event handlers
+socket.on('connect', () => {
+    console.log('✅ Connected to server');
+    captionText.textContent = 'Connected! Click Start to begin...';
+});
+
+socket.on('disconnect', () => {
+    console.log('❌ Disconnected from server');
+    captionText.textContent = 'Disconnected. Refresh page to reconnect.';
+    status.textContent = 'INACTIVE';
+    status.className = 'status inactive';
+});
+
+socket.on('connected', (data) => {
+    console.log('✅ Server confirmed:', data);
+});
+
+socket.on('stream_started', (data) => {
+    console.log('✅ Stream started:', data);
+});
+
+// ✅ FIXED: Listen for 'caption' event (matches backend)
+socket.on('caption', (data) => {
+    console.log('📝 Caption received:', data);
+    
+    // Display the caption
+    captionText.textContent = data.text;
+    
+    // Add to history
+    const historyItem = document.createElement('div');
+    historyItem.className = 'history-item';
+    
+    const confidence = data.confidence ? Math.round(data.confidence * 100) : 0;
+    
+    historyItem.innerHTML = `
+        ${data.text}
+        <span class="confidence">${confidence}% confident</span>
+    `;
+    
+    if (historyContainer.querySelector('p')) {
+        historyContainer.innerHTML = '';
+    }
+    
+    historyContainer.insertBefore(historyItem, historyContainer.firstChild);
+    
+    // Keep only last 20 items
+    while (historyContainer.children.length > 20) {
+        historyContainer.removeChild(historyContainer.lastChild);
+    }
+});
+
+socket.on('error', (data) => {
+    console.error('❌ Error:', data.message);
+    captionText.textContent = `Error: ${data.message}`;
+    alert('Error: ' + data.message);
+});
+
+socket.on('stream_stopped', (data) => {
+    console.log('⏹️ Stream stopped:', data);
+});
+
+// Start button handler
+startBtn.addEventListener('click', async () => {
+    try {
+        const audioSource = document.querySelector('input[name="audioSource"]:checked').value;
+        
+        // Initialize audio capture
+        const success = await audioCapture.initialize(audioSource);
+        if (!success) {
+            return;
+        }
+
+        // Get settings
+        const settings = {
+            sourceLanguage: sourceLanguage.value,
+            targetLanguage: targetLanguage.value,
+            simplification: simplification.value
+        };
+
+        // Notify server that stream is starting
+        socket.emit('start_stream', {
+            source_language: settings.sourceLanguage,
+            target_language: settings.targetLanguage
+        });
+
+        // Start recording
+        audioCapture.start(socket, settings);
+        isRecording = true;
+
+        // Update UI
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        status.textContent = 'ACTIVE';
+        status.className = 'status active';
+        captionText.textContent = 'Listening... speak now!';
+
+        console.log('🎤 Started with settings:', settings);
+
+    } catch (error) {
+        console.error('❌ Error starting:', error);
+        alert('Error: ' + error.message);
+    }
+});
+
+// Stop button handler
+stopBtn.addEventListener('click', () => {
+    audioCapture.stop();
+    isRecording = false;
+    
+    // Notify server
+    socket.emit('stop_stream');
+    
+    // Update UI
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    status.textContent = 'INACTIVE';
+    status.className = 'status inactive';
+    captionText.textContent = 'Captions stopped. Click Start to resume...';
+    
+    console.log('⏹️ Stopped');
+});
+    </script>
+</body>
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Multilingual Captions - AI Accessibility</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .controls {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .control-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .control-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            min-width: 150px;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        #startBtn {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        #startBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        #stopBtn {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+        }
+
+        #stopBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        #stopBtn:disabled,
+        #startBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .caption-display {
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            min-height: 200px;
+            position: relative;
+        }
+
+        .caption-text {
+            color: white;
+            font-size: 2em;
+            line-height: 1.6;
+            text-align: center;
+            font-weight: 500;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .status {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .status.active {
+            background: #38ef7d;
+            color: #000;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .status.inactive {
+            background: #666;
+            color: white;
+        }
+
+        .history {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-top: 30px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .history-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .confidence {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 2px 8px;
+            background: #667eea;
+            color: white;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+
+        .audio-source {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .audio-source h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .source-options {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .source-option {
+            flex: 1;
+            min-width: 200px;
+            padding: 15px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .source-option:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .source-option.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .source-option input[type="radio"] {
+            margin-right: 8px;
+        }
+
+        .debug-info {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.85em;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .caption-text {
+                font-size: 1.5em;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎙️ Live Multilingual Captions</h1>
+            <p>Real-time speech-to-text with AI-powered simplification for enhanced accessibility</p>
+        </div>
+
+        <div class="controls">
+            <div class="audio-source">
+                <h3>Audio Source</h3>
+                <div class="source-options">
+                    <label class="source-option selected">
+                        <input type="radio" name="audioSource" value="microphone" checked>
+                        <strong>🎤 Microphone</strong>
+                        <p style="font-size: 0.9em; color: #666; margin-top: 5px;">Capture live audio from mic</p>
+                    </label>
+                    <label class="source-option">
+                        <input type="radio" name="audioSource" value="system">
+                        <strong>🔊 System Audio</strong>
+                        <p style="font-size: 0.9em; color: #666; margin-top: 5px;">Capture Zoom/Meet audio</p>
+                    </label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="sourceLanguage">Source Language (What is being spoken):</label>
+                <select id="sourceLanguage">
+                    <option value="en">English</option>
+                    <option value="hi">Hindi (हिंदी)</option>
+                    <option value="bn">Bengali (বাংলা)</option>
+                    <option value="ta">Tamil (தமிழ்)</option>
+                    <option value="te">Telugu (తెలుగు)</option>
+                    <option value="mr">Marathi (मराठी)</option>
+                    <option value="ml">Malayalam (മലയാളം)</option>
+                    <option value="kn">Kannada (ಕನ್ನಡ)</option>
+                    <option value="gu">Gujarati (ગુજરાતી)</option>
+                    <option value="pa">Punjabi (ਪੰਜਾਬੀ)</option>
+                    <option value="or">Odia (ଓଡ଼ିଆ)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="targetLanguage">Caption Language (Display captions in):</label>
+                <select id="targetLanguage">
+                    <option value="en">English</option>
+                    <option value="hi">Hindi (हिंदी)</option>
+                    <option value="bn">Bengali (বাংলা)</option>
+                    <option value="ta">Tamil (தமிழ்)</option>
+                    <option value="te">Telugu (తెలుగు)</option>
+                    <option value="mr">Marathi (मराठी)</option>
+                    <option value="ml">Malayalam (മലയാളം)</option>
+                    <option value="kn">Kannada (ಕನ್ನಡ)</option>
+                    <option value="gu">Gujarati (ગુજરાતી)</option>
+                    <option value="pa">Punjabi (ਪੰਜਾਬੀ)</option>
+                    <option value="or">Odia (ଓଡ଼ିଆ)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="simplification">Text Simplification Level:</label>
+                <select id="simplification">
+                    <option value="low">Low (Keep original)</option>
+                    <option value="medium" selected>Medium (Balanced)</option>
+                    <option value="high">High (Very simple)</option>
+                </select>
+            </div>
+
+            <div class="button-group">
+                <button id="startBtn">▶️ Start Captions</button>
+                <button id="stopBtn" disabled>⏹️ Stop Captions</button>
+            </div>
+
+            <div class="debug-info" id="debugInfo">
+                Status: Waiting to start...
+            </div>
+        </div>
+
+        <div class="caption-display">
+            <div class="status inactive" id="status">INACTIVE</div>
+            <div class="caption-text" id="captionText">
+                Captions will appear here when you start...
+            </div>
+        </div>
+
+        <div class="history">
+            <h3>Caption History</h3>
+            <div id="historyContainer">
+                <p style="color: #999;">No captions yet...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ✅ FIXED: Proper buffering + silence detection
+        class ModernAudioCapture {
+            constructor() {
+                this.audioContext = null;
+                this.audioStream = null;
+                this.processor = null;
+                this.isRecording = false;
+                this.socket = null;
+                this.audioBuffer = [];
+                this.bufferSize = 48000; // 3 seconds at 16kHz (increased from 0.25s)
+                this.silenceThreshold = 0.01; // Adjust based on testing
+                this.lastSendTime = 0;
+                this.minSendInterval = 1000; // Minimum 1 second between sends
+            }
+
+            async initialize(audioSource = 'microphone') {
+                try {
+                    // Request audio access based on source
+                    if (audioSource === 'microphone') {
+                        this.audioStream = await navigator.mediaDevices.getUserMedia({
+                            audio: {
+                                channelCount: 1,
+                                sampleRate: 16000,
+                                echoCancellation: true,
+                                noiseSuppression: true,
+                                autoGainControl: true
+                            }
+                        });
+                    } else {
+                        // System audio capture (for Zoom/Meet)
+                        const displayStream = await navigator.mediaDevices.getDisplayMedia({
+                            audio: {
+                                channelCount: 1,
+                                sampleRate: 16000,
+                                echoCancellation: true,
+                                noiseSuppression: true,
+                                autoGainControl: true
+                            },
+                            video: true
+                        });
+                        
+                        // Stop video track, only keep audio
+                        displayStream.getVideoTracks().forEach(track => track.stop());
+                        this.audioStream = displayStream;
+                    }
+
+                    // Create AudioContext for PCM processing
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                        sampleRate: 16000
+                    });
+                    
+                    const source = this.audioContext.createMediaStreamSource(this.audioStream);
+                    
+                    // Use larger buffer size for better batching
+                    this.processor = this.audioContext.createScriptProcessor(8192, 1, 1);
+                    
+                    source.connect(this.processor);
+                    this.processor.connect(this.audioContext.destination);
+                    
+                    console.log('✅ Audio initialized with 16kHz PCM and buffering');
+                    return true;
+                    
+                } catch (error) {
+                    console.error('Audio access error:', error);
+                    if (audioSource === 'system') {
+                        alert('Error accessing system audio:\n' + error.message + 
+                              '\n\nMake sure to:\n1. Select "Share audio" in the dialog\n2. Grant necessary permissions');
+                    } else {
+                        alert('Error accessing microphone:\n' + error.message);
+                    }
+                    return false;
+                }
+            }
+
+            calculateRMS(data) {
+                // Calculate Root Mean Square (volume level)
+                let sum = 0;
+                for (let i = 0; i < data.length; i++) {
+                    sum += data[i] * data[i];
+                }
+                return Math.sqrt(sum / data.length);
+            }
+
+            start(socket, settings) {
+                if (!this.processor) return false;
+                
+                this.socket = socket;
+                this.settings = settings;
+                this.isRecording = true;
+                this.audioBuffer = [];
+                this.lastSendTime = Date.now();
+                
+                // Process audio in real-time with buffering
+                this.processor.onaudioprocess = (e) => {
+                    if (!this.isRecording) return;
+                    
+                    // Get PCM data from audio buffer
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    
+                    // Check if audio contains speech (not silence)
+                    const rms = this.calculateRMS(inputData);
+                    const isSilence = rms < this.silenceThreshold;
+                    
+                    // Update debug info
+                    this.updateDebugInfo(rms, isSilence, this.audioBuffer.length);
+                    
+                    // Add to buffer
+                    this.audioBuffer.push(...inputData);
+                    
+                    // Send when buffer is full OR enough time has passed (and not silence)
+                    const timeSinceLastSend = Date.now() - this.lastSendTime;
+                    const shouldSend = (
+                        this.audioBuffer.length >= this.bufferSize &&
+                        timeSinceLastSend >= this.minSendInterval &&
+                        !isSilence
+                    );
+                    
+                    if (shouldSend) {
+                        this.sendBufferedAudio();
+                    }
+                };
+                
+                console.log('✅ Recording started with settings:', settings);
+                return true;
+            }
+
+            sendBufferedAudio() {
+                if (this.audioBuffer.length === 0) return;
+                
+                // Convert float32 to int16 (LINEAR16 format for Google Speech API)
+                const pcmData = new Int16Array(this.audioBuffer.length);
+                for (let i = 0; i < this.audioBuffer.length; i++) {
+                    pcmData[i] = Math.max(-32768, Math.min(32767, this.audioBuffer[i] * 32768));
+                }
+                
+                // Convert to base64
+                const base64Audio = btoa(String.fromCharCode.apply(null, new Uint8Array(pcmData.buffer)));
+                
+                console.log(`📤 Sending ${this.audioBuffer.length} samples (${pcmData.buffer.byteLength} bytes)`);
+                
+                // Send to server
+                this.socket.emit('audio_data', {
+                    audio: base64Audio,
+                    source_language: this.settings.sourceLanguage,
+                    target_language: this.settings.targetLanguage,
+                    simplify: this.settings.simplification !== 'low',
+                    simplification_level: this.settings.simplification
+                });
+                
+                // Clear buffer and update timestamp
+                this.audioBuffer = [];
+                this.lastSendTime = Date.now();
+            }
+
+            updateDebugInfo(rms, isSilence, bufferLength) {
+                const debugInfo = document.getElementById('debugInfo');
+                if (debugInfo) {
+                    const volumePercent = Math.min(100, Math.round(rms * 1000));
+                    debugInfo.innerHTML = `
+                        Volume: ${volumePercent}% | 
+                        Status: ${isSilence ? '🔇 Silent' : '🎤 Speaking'} | 
+                        Buffer: ${bufferLength} samples | 
+                        Buffering for 3 seconds...
+                    `;
+                }
+            }
+
+            stop() {
+                if (this.processor && this.isRecording) {
+                    this.isRecording = false;
+                    
+                    // Send any remaining buffered audio
+                    if (this.audioBuffer.length > 0) {
+                        this.sendBufferedAudio();
+                    }
+                    
+                    // Disconnect processor
+                    this.processor.onaudioprocess = null;
+                    this.processor.disconnect();
+                    
+                    if (this.audioContext) {
+                        this.audioContext.close();
+                        this.audioContext = null;
+                    }
+                    
+                    if (this.audioStream) {
+                        this.audioStream.getTracks().forEach(track => track.stop());
+                    }
+                    
+                    console.log('⏹️ Recording stopped');
+                }
+            }
+        }
+
+        // Initialize
+        const socket = io({
+            transports: ['websocket', 'polling']
+        });
+
+        const audioCapture = new ModernAudioCapture();
+        let isRecording = false;
+
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const captionText = document.getElementById('captionText');
+        const status = document.getElementById('status');
+        const historyContainer = document.getElementById('historyContainer');
+        const sourceLanguage = document.getElementById('sourceLanguage');
+        const targetLanguage = document.getElementById('targetLanguage');
+        const simplification = document.getElementById('simplification');
+
+        // Handle audio source selection
+        const sourceOptions = document.querySelectorAll('.source-option');
+        sourceOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                sourceOptions.forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+                this.querySelector('input').checked = true;
+            });
+        });
+
+        // Socket.IO event handlers
+        socket.on('connect', () => {
+            console.log('✅ Connected to server');
+            captionText.textContent = 'Connected! Click Start to begin...';
+            document.getElementById('debugInfo').textContent = 'Status: Connected to server';
+        });
+
+        socket.on('disconnect', () => {
+            console.log('❌ Disconnected from server');
+            captionText.textContent = 'Disconnected. Refresh page to reconnect.';
+            status.textContent = 'INACTIVE';
+            status.className = 'status inactive';
+        });
+
+        socket.on('connected', (data) => {
+            console.log('✅ Server confirmed:', data);
+        });
+
+        socket.on('stream_started', (data) => {
+            console.log('✅ Stream started:', data);
+        });
+
+        socket.on('caption', (data) => {
+            console.log('📝 Caption received:', data);
+            
+            // Display the caption
+            captionText.textContent = data.text;
+            
+            // Add to history
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            
+            const confidence = data.confidence ? Math.round(data.confidence * 100) : 0;
+            
+            historyItem.innerHTML = `
+                ${data.text}
+                <span class="confidence">${confidence}% confident</span>
+            `;
+            
+            if (historyContainer.querySelector('p')) {
+                historyContainer.innerHTML = '';
+            }
+            
+            historyContainer.insertBefore(historyItem, historyContainer.firstChild);
+            
+            // Keep only last 20 items
+            while (historyContainer.children.length > 20) {
+                historyContainer.removeChild(historyContainer.lastChild);
+            }
+        });
+
+        socket.on('error', (data) => {
+            console.error('❌ Error:', data.message);
+            captionText.textContent = `Error: ${data.message}`;
+        });
+
+        socket.on('stream_stopped', (data) => {
+            console.log('⏹️ Stream stopped:', data);
+        });
+
+        // Start button handler
+        startBtn.addEventListener('click', async () => {
+            try {
+                const audioSource = document.querySelector('input[name="audioSource"]:checked').value;
+                
+                // Initialize audio capture
+                const success = await audioCapture.initialize(audioSource);
+                if (!success) {
+                    return;
+                }
+
+                // Get settings
+                const settings = {
+                    sourceLanguage: sourceLanguage.value,
+                    targetLanguage: targetLanguage.value,
+                    simplification: simplification.value
+                };
+
+                // Notify server that stream is starting
+                socket.emit('start_stream', {
+                    source_language: settings.sourceLanguage,
+                    target_language: settings.targetLanguage
+                });
+
+                // Start recording
+                audioCapture.start(socket, settings);
+                isRecording = true;
+
+                // Update UI
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                status.textContent = 'ACTIVE';
+                status.className = 'status active';
+                captionText.textContent = 'Listening... speak now! (Speak for 3+ seconds)';
+
+                console.log('🎤 Started with settings:', settings);
+
+            } catch (error) {
+                console.error('❌ Error starting:', error);
+                alert('Error: ' + error.message);
+            }
+        });
+
+        // Stop button handler
+        stopBtn.addEventListener('click', () => {
+            audioCapture.stop();
+            isRecording = false;
+            
+            // Notify server
+            socket.emit('stop_stream');
+            
+            // Update UI
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            status.textContent = 'INACTIVE';
+            status.className = 'status inactive';
+            captionText.textContent = 'Captions stopped. Click Start to resume...';
+            document.getElementById('debugInfo').textContent = 'Status: Stopped';
+            
+            console.log('⏹️ Stopped');
+        });
+    </script>
+</body>
+</html>

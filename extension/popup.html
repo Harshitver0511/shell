@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            width: 350px;
+            padding: 15px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+        }
+
+        h2 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 1.3em;
+        }
+
+        .section {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+
+        .checkbox-section {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .checkbox-section input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #startBtn {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        #startBtn:hover {
+            opacity: 0.9;
+        }
+
+        #stopBtn {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+        }
+
+        #stopBtn:hover {
+            opacity: 0.9;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .status.active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .server-input {
+            width: calc(100% - 16px);
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .info {
+            background: #e7f3ff;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.85em;
+            color: #004085;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h2>🎙️ Live Captions</h2>
+    
+    <div class="status inactive" id="status">Not Connected</div>
+
+    <div class="section">
+        <label>Server URL:</label>
+        <input type="text" id="serverUrl" class="server-input" value="http://localhost:5000" placeholder="http://localhost:5000">
+    </div>
+
+    <div class="section">
+        <label>Source Language:</label>
+        <select id="sourceLanguage">
+            <option value="english">English</option>
+            <option value="hindi">Hindi (हिंदी)</option>
+            <option value="bengali">Bengali (বাংলা)</option>
+            <option value="tamil">Tamil (தமிழ்)</option>
+            <option value="telugu">Telugu (తెలుగు)</option>
+            <option value="marathi">Marathi (मराठी)</option>
+            <option value="malayalam">Malayalam (മലയാളം)</option>
+            <option value="kannada">Kannada (ಕನ್ನಡ)</option>
+            <option value="gujarati">Gujarati (ગુજરાતી)</option>
+            <option value="punjabi">Punjabi (ਪੰਜਾਬੀ)</option>
+            <option value="odia">Odia (ଓଡ଼ିଆ)</option>
+        </select>
+    </div>
+
+    <div class="section">
+        <label>Caption Language:</label>
+        <select id="targetLanguage">
+            <option value="english">English</option>
+            <option value="hindi">Hindi (हिंदी)</option>
+            <option value="bengali">Bengali (বাংলা)</option>
+            <option value="tamil">Tamil (தமிழ்)</option>
+            <option value="telugu">Telugu (తెలుగు)</option>
+            <option value="marathi">Marathi (मराठी)</option>
+            <option value="malayalam">Malayalam (മലയാളം)</option>
+            <option value="kannada">Kannada (ಕನ್ನಡ)</option>
+            <option value="gujarati">Gujarati (ગુજરાતી)</option>
+            <option value="punjabi">Punjabi (ਪੰਜਾਬੀ)</option>
+            <option value="odia">Odia (ଓଡ଼ିଆ)</option>
+        </select>
+    </div>
+
+    <div class="checkbox-section">
+        <input type="checkbox" id="simplifyText" checked>
+        <label for="simplifyText" style="margin: 0;">Deaf-Friendly Simplification</label>
+    </div>
+
+    <button id="startBtn">▶️ Start Captions</button>
+    <button id="stopBtn" disabled>⏹️ Stop Captions</button>
+
+    <div class="info">
+        📌 Navigate to Zoom/Meet/YouTube, then click Start Captions. Captions will overlay on the page.
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

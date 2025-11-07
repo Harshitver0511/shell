@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Multilingual Captions with Sentiment Analysis - AI Accessibility</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .controls {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .control-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .control-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            min-width: 150px;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        #startBtn {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        #startBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        #stopBtn {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+        }
+
+        #stopBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        #stopBtn:disabled,
+        #startBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .caption-display {
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            min-height: 200px;
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .caption-text {
+            color: white;
+            font-size: 2em;
+            line-height: 1.6;
+            text-align: center;
+            font-weight: 500;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .sentiment-display {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .sentiment-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .sentiment-score {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-left: 5px;
+        }
+
+        .status {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .status.active {
+            background: #38ef7d;
+            color: #000;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .status.inactive {
+            background: #666;
+            color: white;
+        }
+
+        .history {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .history h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .history-item {
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .history-item-content {
+            margin-bottom: 8px;
+            font-size: 1.1em;
+            line-height: 1.4;
+        }
+
+        .history-item-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .confidence {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #667eea;
+            color: white;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+
+        .sentiment-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: 600;
+            color: white;
+        }
+
+        .audio-source {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .audio-source h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .source-options {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .source-option {
+            flex: 1;
+            min-width: 200px;
+            padding: 15px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .source-option:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .source-option.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .source-option input[type="radio"] {
+            margin-right: 8px;
+        }
+
+        .debug-info {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.85em;
+            margin-top: 10px;
+        }
+
+        .sentiment-legend {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .sentiment-legend h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .legend-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .caption-text {
+                font-size: 1.5em;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+            
+            .history-item-meta {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎙️ Live Multilingual Captions with Sentiment Analysis</h1>
+            <p>Real-time speech-to-text with AI-powered sentiment analysis for enhanced accessibility</p>
+        </div>
+
+        <div class="sentiment-legend">
+            <h4>Sentiment Legend:</h4>
+            <div class="legend-items">
+                <div class="legend-item" style="background-color: #4CAF50; color: white;">
+                    <span>😊</span> Very Positive
+                </div>
+                <div class="legend-item" style="background-color: #8BC34A; color: white;">
+                    <span>🙂</span> Positive
+                </div>
+                <div class="legend-item" style="background-color: #9E9E9E; color: white;">
+                    <span>😐</span> Neutral
+                </div>
+                <div class="legend-item" style="background-color: #FF9800; color: white;">
+                    <span>😔</span> Negative
+                </div>
+                <div class="legend-item" style="background-color: #F44336; color: white;">
+                    <span>😢</span> Very Negative
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="audio-source">
+                <h3>Audio Source</h3>
+                <div class="source-options">
+                    <label class="source-option selected">
+                        <input type="radio" name="audioSource" value="microphone" checked>
+                        <strong>🎤 Microphone</strong>
+                        <p style="font-size: 0.9em; color: #666; margin-top: 5px;">Capture live audio from mic</p>
+                    </label>
+                    <label class="source-option">
+                        <input type="radio" name="audioSource" value="system">
+                        <strong>🔊 System Audio</strong>
+                        <p style="font-size: 0.9em; color: #666; margin-top: 5px;">Capture Zoom/Meet audio</p>
+                    </label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="sourceLanguage">Source Language (What is being spoken):</label>
+                <select id="sourceLanguage">
+                    <option value="en">English</option>
+                    <option value="hi">Hindi (हिंदी)</option>
+                    <option value="bn">Bengali (বাংলা)</option>
+                    <option value="ta">Tamil (தமிழ்)</option>
+                    <option value="te">Telugu (తెలుగు)</option>
+                    <option value="mr">Marathi (मराठी)</option>
+                    <option value="ml">Malayalam (മലയാളം)</option>
+                    <option value="kn">Kannada (ಕನ್ನಡ)</option>
+                    <option value="gu">Gujarati (ગુજરાતી)</option>
+                    <option value="pa">Punjabi (ਪੰਜਾਬੀ)</option>
+                    <option value="or">Odia (ଓଡ଼ିଆ)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="targetLanguage">Caption Language (Display captions in):</label>
+                <select id="targetLanguage">
+                    <option value="en">English</option>
+                    <option value="hi">Hindi (हिंदी)</option>
+                    <option value="bn">Bengali (বাংলা)</option>
+                    <option value="ta">Tamil (தமிழ்)</option>
+                    <option value="te">Telugu (తెలుగు)</option>
+                    <option value="mr">Marathi (मराठी)</option>
+                    <option value="ml">Malayalam (മലയാളം)</option>
+                    <option value="kn">Kannada (ಕನ್ನಡ)</option>
+                    <option value="gu">Gujarati (ગુજરાતી)</option>
+                    <option value="pa">Punjabi (ਪੰਜਾਬੀ)</option>
+                    <option value="or">Odia (ଓଡ଼ିଆ)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="simplification">Text Simplification Level:</label>
+                <select id="simplification">
+                    <option value="low">Low (Keep original)</option>
+                    <option value="medium" selected>Medium (Balanced)</option>
+                    <option value="high">High (Very simple)</option>
+                </select>
+            </div>
+
+            <div class="button-group">
+                <button id="startBtn">▶️ Start Captions</button>
+                <button id="stopBtn" disabled>⏹️ Stop Captions</button>
+            </div>
+
+            <div class="debug-info" id="debugInfo">
+                Status: Waiting to start...
+            </div>
+        </div>
+
+        <div class="caption-display">
+            <div class="status inactive" id="status">INACTIVE</div>
+            <div class="caption-text" id="captionText">
+                Captions will appear here when you start...
+            </div>
+            <div class="sentiment-display" id="sentimentDisplay" style="display: none;">
+                <div class="sentiment-badge" id="sentimentBadge">
+                    <span id="sentimentEmoji">😐</span>
+                    <span id="sentimentLabel">Neutral</span>
+                    <span class="sentiment-score" id="sentimentScore">(0.00)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="history">
+            <h3>Caption History with Sentiment Analysis</h3>
+            <div id="historyContainer">
+                <p style="color: #999;">No captions yet...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ✅ FIXED: Proper buffering + silence detection with improved batching
+        class ModernAudioCapture {
+            constructor() {
+                this.audioContext = null;
+                this.audioStream = null;
+                this.processor = null;
+                this.isRecording = false;
+                this.socket = null;
+                this.audioBuffer = [];
+                this.bufferSize = 48000; // 3 seconds at 16kHz
+                this.silenceThreshold = 0.005; // More sensitive threshold
+                this.lastSendTime = 0;
+                this.minSendInterval = 2000; // 2 seconds minimum between sends
+                this.consecutiveSilenceCount = 0;
+                this.maxSilenceCount = 5; // Send after 5 consecutive silence frames
+            }
+
+            async initialize(audioSource = 'microphone') {
+                try {
+                    // Request audio access based on source
+                    if (audioSource === 'microphone') {
+                        this.audioStream = await navigator.mediaDevices.getUserMedia({
+                            audio: {
+                                channelCount: 1,
+                                sampleRate: 16000,
+                                echoCancellation: true,
+                                noiseSuppression: true,
+                                autoGainControl: true
+                            }
+                        });
+                    } else {
+                        // System audio capture (for Zoom/Meet)
+                        const displayStream = await navigator.mediaDevices.getDisplayMedia({
+                            audio: {
+                                channelCount: 1,
+                                sampleRate: 16000,
+                                echoCancellation: true,
+                                noiseSuppression: true,
+                                autoGainControl: true
+                            },
+                            video: true
+                        });
+                        
+                        // Stop video track, only keep audio
+                        displayStream.getVideoTracks().forEach(track => track.stop());
+                        this.audioStream = displayStream;
+                    }
+
+                    // Create AudioContext for PCM processing
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                        sampleRate: 16000
+                    });
+                    
+                    const source = this.audioContext.createMediaStreamSource(this.audioStream);
+                    
+                    // Use larger buffer size for better batching
+                    this.processor = this.audioContext.createScriptProcessor(16384, 1, 1);
+                    
+                    source.connect(this.processor);
+                    this.processor.connect(this.audioContext.destination);
+                    
+                    console.log('✅ Audio initialized with 16kHz PCM and improved buffering');
+                    return true;
+                    
+                } catch (error) {
+                    console.error('Audio access error:', error);
+                    if (audioSource === 'system') {
+                        alert('Error accessing system audio:\n' + error.message + 
+                              '\n\nMake sure to:\n1. Select "Share audio" in the dialog\n2. Grant necessary permissions');
+                    } else {
+                        alert('Error accessing microphone:\n' + error.message);
+                    }
+                    return false;
+                }
+            }
+
+            calculateRMS(data) {
+                // Calculate Root Mean Square (volume level)
+                let sum = 0;
+                for (let i = 0; i < data.length; i++) {
+                    sum += data[i] * data[i];
+                }
+                return Math.sqrt(sum / data.length);
+            }
+
+            start(socket, settings) {
+                if (!this.processor) return false;
+                
+                this.socket = socket;
+                this.settings = settings;
+                this.isRecording = true;
+                this.audioBuffer = [];
+                this.lastSendTime = Date.now();
+                this.consecutiveSilenceCount = 0;
+                
+                // Process audio in real-time with improved buffering
+                this.processor.onaudioprocess = (e) => {
+                    if (!this.isRecording) return;
+                    
+                    // Get PCM data from audio buffer
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    
+                    // Check if audio contains speech (not silence)
+                    const rms = this.calculateRMS(inputData);
+                    const isSilence = rms < this.silenceThreshold;
+                    
+                    // Update silence counter
+                    if (isSilence) {
+                        this.consecutiveSilenceCount++;
+                    } else {
+                        this.consecutiveSilenceCount = 0;
+                    }
+                    
+                    // Add to buffer
+                    this.audioBuffer.push(...inputData);
+                    
+                    // Update debug info
+                    this.updateDebugInfo(rms, isSilence, this.audioBuffer.length);
+                    
+                    // Send when:
+                    // 1. Buffer is full and we have speech, OR
+                    // 2. Enough time has passed and we have significant audio, OR
+                    // 3. We've had too much silence (to flush buffer)
+                    const timeSinceLastSend = Date.now() - this.lastSendTime;
+                    const hasEnoughAudio = this.audioBuffer.length >= 16000; // At least 1 second
+                    const shouldSend = (
+                        (this.audioBuffer.length >= this.bufferSize && !isSilence) ||
+                        (timeSinceLastSend >= this.minSendInterval && hasEnoughAudio) ||
+                        (this.consecutiveSilenceCount >= this.maxSilenceCount && hasEnoughAudio)
+                    );
+                    
+                    if (shouldSend) {
+                        this.sendBufferedAudio();
+                    }
+                };
+                
+                console.log('✅ Recording started with improved settings:', settings);
+                return true;
+            }
+
+            sendBufferedAudio() {
+                if (this.audioBuffer.length === 0) return;
+                
+                console.log(`📤 Preparing to send ${this.audioBuffer.length} samples`);
+                
+                // Convert float32 to int16 (LINEAR16 format for Google Speech API)
+                const pcmData = new Int16Array(this.audioBuffer.length);
+                for (let i = 0; i < this.audioBuffer.length; i++) {
+                    pcmData[i] = Math.max(-32768, Math.min(32767, this.audioBuffer[i] * 32768));
+                }
+                
+                // Convert to base64 - FIXED: Proper binary conversion
+                const bytes = new Uint8Array(pcmData.buffer);
+                let binary = '';
+                for (let i = 0; i < bytes.length; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                }
+                const base64Audio = btoa(binary);
+                
+                console.log(`📤 Sending ${this.audioBuffer.length} samples (${pcmData.buffer.byteLength} bytes, base64: ${base64Audio.length} chars)`);
+                
+                // Send to server
+                this.socket.emit('audio_data', {
+                    audio: base64Audio,
+                    source_language: this.settings.sourceLanguage,
+                    target_language: this.settings.targetLanguage,
+                    simplify: this.settings.simplification !== 'low',
+                    simplification_level: this.settings.simplification
+                });
+                
+                // Clear buffer and update timestamp
+                this.audioBuffer = [];
+                this.lastSendTime = Date.now();
+                this.consecutiveSilenceCount = 0;
+            }
+
+            updateDebugInfo(rms, isSilence, bufferLength) {
+                const debugInfo = document.getElementById('debugInfo');
+                if (debugInfo) {
+                    const volumePercent = Math.min(100, Math.round(rms * 1000));
+                    const bufferSeconds = Math.round(bufferLength / 16000 * 10) / 10;
+                    debugInfo.innerHTML = `
+                        Volume: ${volumePercent}% | 
+                        Status: ${isSilence ? '🔇 Silent' : '🎤 Speaking'} | 
+                        Buffer: ${bufferLength} samples (${bufferSeconds}s) | 
+                        Silence Count: ${this.consecutiveSilenceCount}
+                    `;
+                }
+            }
+
+            stop() {
+                if (this.processor && this.isRecording) {
+                    this.isRecording = false;
+                    
+                    // Send any remaining buffered audio
+                    if (this.audioBuffer.length > 0) {
+                        this.sendBufferedAudio();
+                    }
+                    
+                    // Disconnect processor
+                    this.processor.onaudioprocess = null;
+                    this.processor.disconnect();
+                    
+                    if (this.audioContext) {
+                        this.audioContext.close();
+                        this.audioContext = null;
+                    }
+                    
+                    if (this.audioStream) {
+                        this.audioStream.getTracks().forEach(track => track.stop());
+                    }
+                    
+                    console.log('⏹️ Recording stopped');
+                }
+            }
+        }
+
+        // Initialize
+        const socket = io({
+            transports: ['websocket', 'polling']
+        });
+
+        const audioCapture = new ModernAudioCapture();
+        let isRecording = false;
+
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const captionText = document.getElementById('captionText');
+        const status = document.getElementById('status');
+        const historyContainer = document.getElementById('historyContainer');
+        const sourceLanguage = document.getElementById('sourceLanguage');
+        const targetLanguage = document.getElementById('targetLanguage');
+        const simplification = document.getElementById('simplification');
+        const sentimentDisplay = document.getElementById('sentimentDisplay');
+        const sentimentBadge = document.getElementById('sentimentBadge');
+        const sentimentEmoji = document.getElementById('sentimentEmoji');
+        const sentimentLabel = document.getElementById('sentimentLabel');
+        const sentimentScore = document.getElementById('sentimentScore');
+
+        // Handle audio source selection
+        const sourceOptions = document.querySelectorAll('.source-option');
+        sourceOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                sourceOptions.forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+                this.querySelector('input').checked = true;
+            });
+        });
+
+        // Socket.IO event handlers
+        socket.on('connect', () => {
+            console.log('✅ Connected to server');
+            captionText.textContent = 'Connected! Click Start to begin...';
+            document.getElementById('debugInfo').textContent = 'Status: Connected to server';
+        });
+
+        socket.on('disconnect', () => {
+            console.log('❌ Disconnected from server');
+            captionText.textContent = 'Disconnected. Refresh page to reconnect.';
+            status.textContent = 'INACTIVE';
+            status.className = 'status inactive';
+            sentimentDisplay.style.display = 'none';
+        });
+
+        socket.on('connected', (data) => {
+            console.log('✅ Server confirmed:', data);
+        });
+
+        socket.on('stream_started', (data) => {
+            console.log('✅ Stream started:', data);
+        });
+
+        socket.on('caption', (data) => {
+            console.log('📝 Caption received:', data);
+            
+            // Display the caption
+            captionText.textContent = data.text;
+            
+            // Display sentiment analysis
+            if (data.sentiment) {
+                sentimentDisplay.style.display = 'block';
+                const sentiment = data.sentiment;
+                const toneInfo = sentiment.tone_info;
+                
+                sentimentEmoji.textContent = toneInfo.emoji;
+                sentimentLabel.textContent = toneInfo.label;
+                sentimentScore.textContent = `(${sentiment.score.toFixed(2)})`;
+                
+                // Update badge color
+                sentimentBadge.style.backgroundColor = toneInfo.color;
+            }
+            
+            // Add to history
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            
+            const confidence = data.confidence ? Math.round(data.confidence * 100) : 0;
+            
+            let sentimentHtml = '';
+            if (data.sentiment) {
+                const sentiment = data.sentiment;
+                const toneInfo = sentiment.tone_info;
+                sentimentHtml = `
+                    <div class="sentiment-indicator" style="background-color: ${toneInfo.color};">
+                        <span>${toneInfo.emoji}</span>
+                        <span>${toneInfo.label}</span>
+                        <span style="font-size: 0.8em; opacity: 0.8;">(${sentiment.score.toFixed(2)})</span>
+                    </div>
+                `;
+            }
+            
+            historyItem.innerHTML = `
+                <div class="history-item-content">${data.text}</div>
+                <div class="history-item-meta">
+                    <div class="confidence">${confidence}% confident</div>
+                    ${sentimentHtml}
+                </div>
+            `;
+            
+            if (historyContainer.querySelector('p')) {
+                historyContainer.innerHTML = '';
+            }
+            
+            historyContainer.insertBefore(historyItem, historyContainer.firstChild);
+            
+            // Keep only last 20 items
+            while (historyContainer.children.length > 20) {
+                historyContainer.removeChild(historyContainer.lastChild);
+            }
+        });
+
+        socket.on('error', (data) => {
+            console.error('❌ Error:', data.message);
+            captionText.textContent = `Error: ${data.message}`;
+            sentimentDisplay.style.display = 'none';
+        });
+
+        socket.on('stream_stopped', (data) => {
+            console.log('⏹️ Stream stopped:', data);
+        });
+
+        // Start button handler
+        startBtn.addEventListener('click', async () => {
+            try {
+                const audioSource = document.querySelector('input[name="audioSource"]:checked').value;
+                
+                // Initialize audio capture
+                const success = await audioCapture.initialize(audioSource);
+                if (!success) {
+                    return;
+                }
+
+                // Get settings
+                const settings = {
+                    sourceLanguage: sourceLanguage.value,
+                    targetLanguage: targetLanguage.value,
+                    simplification: simplification.value
+                };
+
+                // Notify server that stream is starting
+                socket.emit('start_stream', {
+                    source_language: settings.sourceLanguage,
+                    target_language: settings.targetLanguage
+                });
+
+                // Start recording
+                audioCapture.start(socket, settings);
+                isRecording = true;
+
+                // Update UI
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                status.textContent = 'ACTIVE';
+                status.className = 'status active';
+                captionText.textContent = 'Listening... speak now! (Buffering for better accuracy)';
+
+                console.log('🎤 Started with settings:', settings);
+
+            } catch (error) {
+                console.error('❌ Error starting:', error);
+                alert('Error: ' + error.message);
+            }
+        });
+
+        // Stop button handler
+        stopBtn.addEventListener('click', () => {
+            audioCapture.stop();
+            isRecording = false;
+            
+            // Notify server
+            socket.emit('stop_stream');
+            
+            // Update UI
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            status.textContent = 'INACTIVE';
+            status.className = 'status inactive';
+            captionText.textContent = 'Captions stopped. Click Start to resume...';
+            sentimentDisplay.style.display = 'none';
+            document.getElementById('debugInfo').textContent = 'Status: Stopped';
+            
+            console.log('⏹️ Stopped');
+        });
+    </script>
+</body>
+</html>
