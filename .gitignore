@@ -1,1 +1,26 @@
+# Sensitive credentials
+credentials.json
+credentials/
 .credentials/
+
+# Python caches and builds
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtualenv / environment folders
+venv/
+env/
+.venv/
+
+# Environment files
+.env
+/*.env
+
+# Editor/IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
