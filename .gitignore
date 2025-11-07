@@ -1,0 +1,21 @@
+# Ignore Python virtual env
+venv/
+newgoogle/venv/
+
+# Ignore environment variables
+.env
+newgoogle/.env
+
+# Ignore credentials/secrets
+credentials.json
+newgoogle/credentials.json
+
+# Node/Extension build / cache
+node_modules/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# VS Code settings
+.vscode/
